@@ -14,22 +14,56 @@ client.on('qr', (qr) => {
 client.on('ready', () => {
     console.log('WhatsApp client está pronto');
 
-    // Função para reiniciar o fluxo de mensagens
-    const restartMessageFlow = (sender) => {
-        client.once('message', async (message) => {
+    client.on('message', async (message) => {
+        if (!message.fromMe) {
+            const sender = message.from;
             const text = message.body;
+
+            // Verifica se é a primeira mensagem recebida ou se houve um erro na abertura do chamado
+            if (isFirstMessage) {
+                // Responde apenas à primeira mensagem de saudação
+                isFirstMessage = false;
+                await client.sendMessage(sender, 'Olá! Escolha uma das opções a seguir:\n1 - Abrir chamado');
+                return;
+            }
 
             // Verifica se a mensagem contém o texto "1" (opção para abrir chamado)
             if (text && text.trim() === '1') {
+                // Envia uma mensagem solicitando o login do usuário
                 await client.sendMessage(sender, 'Por favor, informe o seu login:');
-                const login = await waitForMessage(sender);
-                await client.sendMessage(sender, 'Por favor, descreva o chamado:');
-                const descricao = await waitForMessage(sender);
 
+                // Função para aguardar a próxima mensagem do usuário
+                const waitForLogin = new Promise(resolve => {
+                    client.on('message', async (message) => {
+                        if (message.from === sender) {
+                            resolve(message.body.trim());
+                        }
+                    });
+                });
+
+                // Aguarda a resposta do usuário
+                const login = await waitForLogin;
+
+                // Envia uma mensagem solicitando a descrição do chamado
+                await client.sendMessage(sender, 'Por favor, descreva o chamado:');
+
+                // Função para aguardar a próxima mensagem do usuário
+                const waitForDescricao = new Promise(resolve => {
+                    client.on('message', async (message) => {
+                        if (message.from === sender) {
+                            resolve(message.body.trim());
+                        }
+                    });
+                });
+
+                // Aguarda a resposta do usuário
+                const descricao = await waitForDescricao;
+
+                // Informações fixas do chamado
                 const dadosChamado = {
-                    CatalogoServicosid: 2089,
-                    Urgencia: 3,
-                    Prioridade: 1,
+                    CatalogoServicosid: 2089, // Definindo o ID do catálogo de serviços como 2089
+                    Urgencia: 3, // Definindo a urgência como 3 (Alta) diretamente
+                    Prioridade: 1, // Definindo a prioridade como 1 (Baixa) diretamente
                     Descricao: descricao,
                     LoginSolicitante: login
                 };
@@ -37,46 +71,19 @@ client.on('ready', () => {
                 try {
                     const resposta = await abrirChamado(dadosChamado);
                     console.log('Chamado aberto com sucesso:', resposta);
+                    // Envia uma mensagem de confirmação para o remetente
                     await client.sendMessage(sender, 'Chamado aberto com sucesso! Número do chamado: ' + resposta);
+                    isFirstMessage = true; // Reinicia o loop
                 } catch (error) {
                     console.error('Erro ao abrir chamado:', error.message);
+                    // Envia uma mensagem de erro para o remetente
                     await client.sendMessage(sender, 'Erro ao abrir chamado. Por favor, tente novamente.');
+                    isFirstMessage = true; // Reinicia o loop
                 }
-
-                // Reinicia o fluxo de mensagens
-                restartMessageFlow(sender);
-            } else {
-                // Responde à mensagem com a opção inválida
-                await client.sendMessage(sender, 'Opção inválida. Digite "1" para abrir um chamado.');
-                // Reinicia o fluxo de mensagens
-                restartMessageFlow(sender);
             }
-        });
-    };
-
-    client.on('message', async (message) => {
-        if (!message.fromMe) {
-            const sender = message.from;
-
-            if (isFirstMessage) {
-                isFirstMessage = false;
-                await client.sendMessage(sender, 'Olá! Escolha uma das opções a seguir:\n1 - Abrir chamado');
-                // Inicia o fluxo de mensagens
-                restartMessageFlow(sender);
-            }
+            
         }
     });
 });
 
 client.initialize();
-
-// Função para aguardar a próxima mensagem do usuário
-const waitForMessage = (sender) => {
-    return new Promise(resolve => {
-        client.once('message', async (message) => {
-            if (message.from === sender) {
-                resolve(message.body.trim());
-            }
-        });
-    });
-};
