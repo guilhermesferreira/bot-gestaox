@@ -1,3 +1,4 @@
 node_modules
 /src/bot/tokens/
 /src/bot/.wwbjs_cache/
+wwbjs_cache/    
