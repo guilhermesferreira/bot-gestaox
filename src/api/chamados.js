@@ -15,6 +15,7 @@ async function getIdUsu(login) {
         const response = await axios.get(`${process.env.URL_API_USUARIO}?Login=${login}`);
         return response.data.IdUsu;
     } catch (error) {
+            //A API consumida, retorna os resultados junto com a response 
         if (error.response && error.response.status === 500 && error.response.data) {
             // Se houver uma resposta no erro 500 e dados retornados, retornamos o IdUsu
             return error.response.data.IdUsu;
@@ -23,7 +24,7 @@ async function getIdUsu(login) {
             throw error;
         }
     }
-}
+} 
 
 
 module.exports = {
