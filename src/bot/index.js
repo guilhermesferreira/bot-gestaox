@@ -14,7 +14,6 @@ client.on('qr', (qr) => {
     console.log('QR Code gerado. Escaneie-o para se autenticar:', qr);
 });
 
-// Não tem porque ter o método waitForDescription e waitForLogin, sendo que os dois fazem a mesma função, deixe-os com um nome genérico e sempre que precisar, o chame.
 // Função para aguardar a próxima mensagem do usuário
 function waitingForMessage(sender) {
     const waitFor = new Promise(resolve => {
@@ -26,7 +25,7 @@ function waitingForMessage(sender) {
     });
     return waitFor;
 }
-//Mano deixei segregado por poder ser um método utilizado várias vezes, com isso, basta você chamar o método e enviar o sender como parâmetro.
+// Deixei segregado por poder ser um método utilizado várias vezes, com isso, basta você chamar o método e enviar o sender como parâmetro.
 const sendDefaultMessage = async (sender) => {
     await client.sendMessage(sender, 'Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado`');
 }
