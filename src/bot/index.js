@@ -1,6 +1,6 @@
 const { Client, LocalAuth} = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const { abrirChamado } = require('../api/chamados');
+const { abrirChamado, getIdUsu } = require('../api/chamados');
 
 const client = new Client({
     authStrategy: new LocalAuth()
@@ -25,6 +25,21 @@ function waitingForMessage(sender) {
     });
     return waitFor;
 }
+
+// Função para aguardar a próxima mensagem do usuário e retornar um objeto com a mensagem e o IdUsu
+async function waitingForMessageAndIdUsu(sender) {
+    const waitFor = new Promise(async (resolve, reject) => {
+        client.once('message', async (message) => { // Use 'once' em vez de 'on' para ouvir apenas uma vez
+            if (message.from === sender) {
+                const login = message.body.trim(); // Obtém a mensagem digitada pelo usuário (login)
+                const idUsu = await getIdUsu(login); // Obtém o IdUsu com base na mensagem
+                resolve({ login, idUsu }); // Retorna um objeto com a mensagem e o IdUsu
+            }
+        });
+    });
+    return waitFor;
+}
+
 // Deixei segregado por poder ser um método utilizado várias vezes, com isso, basta você chamar o método e enviar o sender como parâmetro.
 const sendDefaultMessage = async (sender) => {
     await client.sendMessage(sender, 'Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado`');
@@ -55,7 +70,9 @@ client.on('ready',  async () => {
                 afterSendOptionMenu = true;
                 await client.sendMessage(sender, 'Por favor, informe o seu login:');
 
-                const login = await waitingForMessage(sender);
+                const usuario = await waitingForMessageAndIdUsu(sender);
+                console.log('Mensagem do usuário:',usuario.login);
+                console.log('Id do usuário:', usuario.idUsu);
 
                 await client.sendMessage(sender, 'Por favor, descreva o chamado:');
 
@@ -66,7 +83,7 @@ client.on('ready',  async () => {
                     Urgencia: 3, // Definindo a urgência como 3 (Alta) diretamente
                     Prioridade: 1, // Definindo a prioridade como 1 (Baixa) diretamente
                     Descricao: descricao,
-                    LoginSolicitante: login
+                    LoginSolicitante: usuario.login
                 };
 
                 try {
