@@ -6,7 +6,6 @@
     "whatsapp-web.js": "^1.23.0"
   },
   "scripts": {
-    "startBot": "node ./src/bot/index.js",
-    "startServer": "node ./src/server/index.js"
+    "start": "node --env-file=.env src/bot/index.js"
   }
 }
