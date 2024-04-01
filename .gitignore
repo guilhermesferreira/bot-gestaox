@@ -1,9 +1,4 @@
 node_modules
-/src/bot/tokens/
-/src/bot/tokens/*
-/src/bot/.wwbjs_cache/*
-/src/bot/.wwbjs_auth/*
-wwbjs_cache/*
-wwbjs_auth/*
-src\bot\.wwebjs_auth\*
-src\bot\.wwebjs_cache\*
+.wwebjs_auth
+.wwebjs_cache
+tokens
