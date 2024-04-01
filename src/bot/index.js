@@ -76,15 +76,18 @@ client.on('ready',  async () => {
                     console.log('Chamado aberto com sucesso:', resposta);
                     // Envia uma mensagem de confirmação para o remetente
                     await client.sendMessage(sender, 'Chamado aberto com sucesso! Número do chamado: ' + resposta);
+                    afterSendOptionMenu = false;
                     isFirstMessage = true; // Reinicia o loop
                 } catch (error) {
                     console.error('Erro ao abrir chamado:', error.message);
                     // Envia uma mensagem de erro para o remetente
                     await client.sendMessage(sender, 'Erro ao abrir chamado. Por favor, tente novamente.');
+                    afterSendOptionMenu = false;
                     isFirstMessage = true; // Reinicia o loop
                 }
             } else if(!text.toLowerCase().includes("menu") && !afterSendOptionMenu){
                 await client.sendMessage(sender, "Opção inválida, por favor selecione uma opção válida. Escreva menu, para obter as opções.")
+                afterSendOptionMenu = false;
             }
             
         }
