@@ -42,7 +42,7 @@ async function waitingForMessageAndIdUsu(sender) {
 
 // Deixei segregado por poder ser um método utilizado várias vezes, com isso, basta você chamar o método e enviar o sender como parâmetro.
 const sendDefaultMessage = async (sender) => {
-    await client.sendMessage(sender, 'Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado`');
+    await client.sendMessage(sender, 'Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado`\n`2 - Consultar chamados`');
 }
 
 client.on('ready',  async () => {
@@ -69,13 +69,9 @@ client.on('ready',  async () => {
             if (text && text.trim() === '1') {
                 afterSendOptionMenu = true;
                 await client.sendMessage(sender, 'Por favor, informe o seu login:');
-
                 const usuario = await waitingForMessageAndIdUsu(sender);
-                console.log('Mensagem do usuário:',usuario.login);
-                console.log('Id do usuário:', usuario.idUsu);
 
                 await client.sendMessage(sender, 'Por favor, descreva o chamado:');
-
                 const descricao = await waitingForMessage(sender);
 
                 const dadosChamado = {
@@ -101,11 +97,23 @@ client.on('ready',  async () => {
                     afterSendOptionMenu = false;
                     isFirstMessage = true; // Reinicia o loop
                 }
-            } else if(!text.toLowerCase().includes("menu") && !afterSendOptionMenu){
-                await client.sendMessage(sender, "Opção inválida, por favor selecione uma opção válida. Escreva menu, para obter as opções.")
+            } 
+            // Verifica se a mensagem contém o texto "2" (opção para consultar chamado)
+            if (text && text.trim() === '2') {
+                afterSendOptionMenu = true;
+                await client.sendMessage(sender, 'Aguarde... Consultando chamados.')
+
                 afterSendOptionMenu = false;
+                isFirstMessage = true; // Reinicia o loop
             }
+                     
             
+            
+            
+            else if(!text.toLowerCase().includes("menu") && !afterSendOptionMenu){
+                await client.sendMessage(sender, "Opção inválida, por favor selecione uma opção válida. Escreva *menu*, para obter as opções.")
+                afterSendOptionMenu = false;
+            }   
         }
     });
 });
