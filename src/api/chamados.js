@@ -26,8 +26,27 @@ async function getIdUsu(login) {
     }
 } 
 
+// Função para obter os chamados do usuário, passando o ID do usuário
+async function getTickets(IdUsu) {
+    try {
+        const response = await axios.get(`${process.env.URL_API_CONSULTA}?Usuarioid=${IdUsu}`);
+        
+        // Extrair código e status de cada chamado
+        const tickets = response.data.map(ticket => ({
+            codigo: ticket.CODIGO,
+            status: ticket.STATUS, 
+            responsavel: ticket.RESPONSAVEL_USER,
+            dataAbertura: ticket.DATA_ABERTURA
+        }));
+
+        return tickets;
+    } catch (error) {
+        throw new Error(`Erro ao consultar os chamados: ${error.message}`);
+    }
+}
 
 module.exports = {
     abrirChamado,
-    getIdUsu
+    getIdUsu,
+    getTickets
 };

@@ -1,18 +1,27 @@
-const { Client, LocalAuth} = require('whatsapp-web.js');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const { abrirChamado, getIdUsu } = require('../api/chamados');
+const { abrirChamado, getIdUsu, getTickets } = require('../api/chamados');
 
 const client = new Client({
-    authStrategy: new LocalAuth()
+    authStrategy: new LocalAuth({
+        dataPath: 'sessions'
+    })
 });
 
 let isFirstMessage = true;
 let afterSendOptionMenu = false;
 
-client.on('qr', (qr) => {
-    qrcode.generate(qr, { small: true });
-    console.log('QR Code gerado. Escaneie-o para se autenticar:', qr);
-});
+// Função para verificar se o cliente está autenticado
+function isClientAuthenticated() {
+    return client.state === 'authenticated';
+}
+
+if (!isClientAuthenticated()) {
+    client.on('qr', (qr) => {
+        qrcode.generate(qr, { small: true });
+        console.log('QR Code gerado. Escaneie-o para se autenticar:', qr);
+    });
+}
 
 // Função para aguardar a próxima mensagem do usuário
 function waitingForMessage(sender) {
@@ -45,8 +54,9 @@ const sendDefaultMessage = async (sender) => {
     await client.sendMessage(sender, 'Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado`\n`2 - Consultar chamados`');
 }
 
-client.on('ready',  async () => {
+client.on('ready', async () => {
     console.log('WhatsApp client está pronto');
+
 
     client.on('message', async (message) => {
         if (!message.fromMe) {
@@ -100,11 +110,57 @@ client.on('ready',  async () => {
             } 
             // Verifica se a mensagem contém o texto "2" (opção para consultar chamado)
             if (text && text.trim() === '2') {
-                afterSendOptionMenu = true;
-                await client.sendMessage(sender, 'Aguarde... Consultando chamados.')
+              afterSendOptionMenu = true;
+              await client.sendMessage(
+                sender,
+                "Por favor, informe o seu login:"
+              );
+              const usuario = await waitingForMessageAndIdUsu(sender);
 
-                afterSendOptionMenu = false;
-                isFirstMessage = true; // Reinicia o loop
+              await client.sendMessage(
+                sender,
+                "Aguarde... Consultando chamados."
+              );
+
+
+              console.log(
+                `Dados do usuário: ${usuario.login} ${usuario.idUsu}`
+              );
+
+              const tickets = await getTickets(usuario.idUsu); // obtem uma lista com os chamados
+
+                // Envia os detalhes dos chamados para o usuário
+                if (tickets.length === 0) {
+
+                    await client.sendMessage(sender,"Você não tem nenhum chamado aberto/resolvido recentemente.");
+                    console.log(`O usuario não tem chamados`)
+
+                } else {
+                    await client.sendMessage(sender,"Aqui estão seus chamados abertos/resolvidos recentemente:");
+
+                    tickets.forEach((ticket) => {
+
+
+
+                        const mensagem =`*Chamado: ${ticket.codigo}*\n - Status: ${ticket.status}\n - Responsavel: ${ticket.responsavel}\n - Abertura: ${ticket.dataAbertura}`;
+                        
+                        client.sendMessage(sender, mensagem);
+                        console.log(mensagem);
+
+                    });
+                }
+
+              console.log("Chamados abertos:");
+              tickets.forEach((ticket) => {
+                console.log(
+                  `Código: ${ticket.codigo}, Status: ${ticket.status}`
+                );
+              });
+
+
+
+              afterSendOptionMenu = false;
+              isFirstMessage = true; // Reinicia o loop
             }
                      
             
