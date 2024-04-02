@@ -1,4 +1,4 @@
-const { Client, LocalAuth } = require("whatsapp-web.js");
+const { Client, LocalAuth, } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const { abrirChamado, getIdUsu, getTickets } = require("../api/chamados");
 
@@ -6,6 +6,10 @@ const client = new Client({
   authStrategy: new LocalAuth({
     dataPath: "sessions",
   }),
+  webVersionCache: {
+    type: 'remote',
+    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html', // CORRIGE AS ATTS DO WPP WEB
+}
 });
 
 let isFirstMessage = true;
@@ -22,6 +26,9 @@ if (!isClientAuthenticated()) {
     console.log("QR Code gerado. Escaneie-o para se autenticar:", qr);
   });
 }
+
+client.on("ready", async () => {
+  console.log("WhatsApp client está pronto");
 
 // Função para aguardar a próxima mensagem do usuário
 function waitingForMessage(sender) {
@@ -58,8 +65,6 @@ const sendDefaultMessage = async (sender) => {
   );
 };
 
-client.on("ready", async () => {
-  console.log("WhatsApp client está pronto");
 
   client.on("message", async (message) => {
     if (!message.fromMe) {
