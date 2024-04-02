@@ -1,4 +1,4 @@
-const { Client, LocalAuth, } = require("whatsapp-web.js");
+const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const { abrirChamado, getIdUsu, getTickets } = require("../api/chamados");
 
@@ -7,9 +7,10 @@ const client = new Client({
     dataPath: "sessions",
   }),
   webVersionCache: {
-    type: 'remote',
-    remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html', // CORRIGE AS ATTS DO WPP WEB
-}
+    type: "remote",
+    remotePath:
+      "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html", // CORRIGE AS ATTS DO WPP WEB
+  },
 });
 
 let isFirstMessage = true;
@@ -30,41 +31,40 @@ if (!isClientAuthenticated()) {
 client.on("ready", async () => {
   console.log("WhatsApp client está pronto");
 
-// Função para aguardar a próxima mensagem do usuário
-function waitingForMessage(sender) {
-  const waitFor = new Promise((resolve) => {
-    client.on("message", async (message) => {
-      if (message.from === sender) {
-        resolve(message.body.trim());
-      }
+  // Função para aguardar a próxima mensagem do usuário
+  function waitingForMessage(sender) {
+    const waitFor = new Promise((resolve) => {
+      client.on("message", async (message) => {
+        if (message.from === sender) {
+          resolve(message.body.trim());
+        }
+      });
     });
-  });
-  return waitFor;
-}
+    return waitFor;
+  }
 
-// Função para aguardar a próxima mensagem do usuário e retornar um objeto com a mensagem e o IdUsu
-async function waitingForMessageAndIdUsu(sender) {
-  const waitFor = new Promise(async (resolve, reject) => {
-    client.once("message", async (message) => {
-      // Use 'once' em vez de 'on' para ouvir apenas uma vez
-      if (message.from === sender) {
-        const login = message.body.trim(); // Obtém a mensagem digitada pelo usuário (login)
-        const idUsu = await getIdUsu(login); // Obtém o IdUsu com base na mensagem
-        resolve({ login, idUsu }); // Retorna um objeto com a mensagem e o IdUsu
-      }
+  // Função para aguardar a próxima mensagem do usuário e retornar um objeto com a mensagem e o IdUsu
+  async function waitingForMessageAndIdUsu(sender) {
+    const waitFor = new Promise(async (resolve, reject) => {
+      client.once("message", async (message) => {
+        // Use 'once' em vez de 'on' para ouvir apenas uma vez
+        if (message.from === sender) {
+          const login = message.body.trim(); // Obtém a mensagem digitada pelo usuário (login)
+          const idUsu = await getIdUsu(login); // Obtém o IdUsu com base na mensagem
+          resolve({ login, idUsu }); // Retorna um objeto com a mensagem e o IdUsu
+        }
+      });
     });
-  });
-  return waitFor;
-}
+    return waitFor;
+  }
 
-// Deixei segregado por poder ser um método utilizado várias vezes, com isso, basta você chamar o método e enviar o sender como parâmetro.
-const sendDefaultMessage = async (sender) => {
-  await client.sendMessage(
-    sender,
-    "Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado`\n`2 - Consultar chamados`"
-  );
-};
-
+  // Deixei segregado por poder ser um método utilizado várias vezes, com isso, basta você chamar o método e enviar o sender como parâmetro.
+  const sendDefaultMessage = async (sender) => {
+    await client.sendMessage(
+      sender,
+      "Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado`\n`2 - Consultar chamados`"
+    );
+  };
 
   client.on("message", async (message) => {
     if (!message.fromMe) {
