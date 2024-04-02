@@ -23,10 +23,13 @@ function isClientAuthenticated() {
 
 if (!isClientAuthenticated()) {
   client.on("qr", (qr) => {
+    console.log("Cliente não autenticado... Iniciando autenticação");
     qrcode.generate(qr, { small: true });
     console.log("QR Code gerado. Escaneie-o para se autenticar:", qr);
   });
-}
+} else {
+  console.log("Cliente já autenticado...");
+};
 
 client.on("ready", async () => {
   console.log("WhatsApp client está pronto");
@@ -143,7 +146,7 @@ client.on("ready", async () => {
         } else {
           await client.sendMessage(
             sender,
-            "Aqui estão seus chamados abertos/resolvidos recentemente:"
+            "Aqui estão seus chamados recentes:"
           );
 
           tickets.forEach((ticket) => {
