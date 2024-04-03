@@ -16,11 +16,23 @@ const client = new Client({
 let isFirstMessage = true;
 let afterSendOptionMenu = false;
 
+// Função para obter o número de telefone do bot
+function getBotPhoneNumber() {
+  //return client.info.me.user; - Descontinuado mas funciona
+  return client.info.wid;
+}
+
+// Função para verificar se a mensagem veio do próprio bot
+function isMessageFromBot(message) {
+  return message.from === getBotPhoneNumber();
+}
+
 // Função para verificar se o cliente está autenticado
 function isClientAuthenticated() {
   return client.state === "authenticated";
 }
 
+// Verificação de Autenticação do Cliente
 if (!isClientAuthenticated()) {
   client.on("qr", (qr) => {
     console.log("Cliente não autenticado... Iniciando autenticação");
@@ -29,150 +41,157 @@ if (!isClientAuthenticated()) {
   });
 } else {
   console.log("Cliente já autenticado...");
+}
+
+// Função para aguardar a próxima mensagem do usuário
+function waitingForMessage(sender) {
+  const waitFor = new Promise((resolve) => {
+    client.on("message", async (message) => {
+      if (message.from === sender) {
+        resolve(message.body.trim());
+      }
+    });
+  });
+  return waitFor;
+}
+
+// Função para aguardar a próxima mensagem do usuário e retornar um objeto com o login e o IdUsu
+async function waitingForMessageAndIdUsu(sender) {
+  const waitFor = new Promise(async (resolve, reject) => {
+    client.once("message", async (message) => {
+      if (message.from === sender) {
+        const login = message.body.trim(); // Obtém a mensagem digitada pelo usuário (login)
+        const idUsu = await getIdUsu(login); // Obtém o IdUsu com base na mensagem
+        resolve({ login, idUsu }); // Retorna um objeto com o login e o IdUsu
+      }
+    });
+  });
+  return waitFor;
+}
+
+// Função para enviar a mensagem padrão com as opções disponíveis
+const sendDefaultMessage = async (sender) => {
+  await client.sendMessage(
+    sender,
+    "Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado`\n`2 - Consultar chamados`"
+  );
 };
 
-client.on("ready", async () => {
-  console.log("WhatsApp client está pronto");
+// Função para manipular a opção de abrir chamado
+async function handleAbrirChamado(sender) {
+  afterSendOptionMenu = true;
+  await client.sendMessage(sender, "Por favor, informe o seu login:");
+  const usuario = await waitingForMessageAndIdUsu(sender);
 
-  // Função para aguardar a próxima mensagem do usuário
-  function waitingForMessage(sender) {
-    const waitFor = new Promise((resolve) => {
-      client.on("message", async (message) => {
-        if (message.from === sender) {
-          resolve(message.body.trim());
-        }
-      });
-    });
-    return waitFor;
-  }
+  await client.sendMessage(sender, "Por favor, descreva o chamado:");
+  const descricao = await waitingForMessage(sender);
 
-  // Função para aguardar a próxima mensagem do usuário e retornar um objeto com a mensagem e o IdUsu
-  async function waitingForMessageAndIdUsu(sender) {
-    const waitFor = new Promise(async (resolve, reject) => {
-      client.once("message", async (message) => {
-        // Use 'once' em vez de 'on' para ouvir apenas uma vez
-        if (message.from === sender) {
-          const login = message.body.trim(); // Obtém a mensagem digitada pelo usuário (login)
-          const idUsu = await getIdUsu(login); // Obtém o IdUsu com base na mensagem
-          resolve({ login, idUsu }); // Retorna um objeto com a mensagem e o IdUsu
-        }
-      });
-    });
-    return waitFor;
-  }
-
-  // Deixei segregado por poder ser um método utilizado várias vezes, com isso, basta você chamar o método e enviar o sender como parâmetro.
-  const sendDefaultMessage = async (sender) => {
-    await client.sendMessage(
-      sender,
-      "Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado`\n`2 - Consultar chamados`"
-    );
+  const dadosChamado = {
+    CatalogoServicosid: 2089,
+    Urgencia: 3,
+    Prioridade: 1,
+    Descricao: descricao,
+    LoginSolicitante: usuario.login,
   };
 
-  client.on("message", async (message) => {
-    if (!message.fromMe) {
-      const sender = message.from;
-      const text = message.body;
+  try {
+    const resposta = await abrirChamado(dadosChamado);
+    await client.sendMessage(sender, "Aguarde... Abrindo o chamado.");
+    console.log("Chamado aberto com sucesso:", resposta);
+    await client.sendMessage(
+      sender,
+      "Chamado aberto com sucesso! Número do chamado: " + resposta
+    );
+    afterSendOptionMenu = false;
+    isFirstMessage = true;
+    return;
+  } catch (error) {
+    console.error("Erro ao abrir chamado:", error.message);
+    await client.sendMessage(
+      sender,
+      "Erro ao abrir chamado. Por favor, tente novamente."
+    );
+    afterSendOptionMenu = false;
+    isFirstMessage = true;
+  }
+}
 
-      if (isFirstMessage) {
-        isFirstMessage = false;
-        await sendDefaultMessage(sender);
-        return;
-      }
+// Função para manipular a opção de consultar chamados
+async function handleConsultarChamados(sender) {
+  afterSendOptionMenu = true;
+  await client.sendMessage(sender, "Por favor, informe o seu login:");
+  const usuario = await waitingForMessageAndIdUsu(sender);
 
-      //Exemplo de uso 2x do mesmo método, criado acima.
-      if (text.toLowerCase().includes("menu")) {
-        await sendDefaultMessage(sender);
-      }
+  await client.sendMessage(sender, "Aguarde... Consultando chamados.");
 
-      // Verifica se a mensagem contém o texto "1" (opção para abrir chamado)
-      if (text && text.trim() === "1") {
-        afterSendOptionMenu = true;
-        await client.sendMessage(sender, "Por favor, informe o seu login:");
-        const usuario = await waitingForMessageAndIdUsu(sender);
+  console.log(`Dados do usuário: ${usuario.login} ${usuario.idUsu}`);
 
-        await client.sendMessage(sender, "Por favor, descreva o chamado:");
-        const descricao = await waitingForMessage(sender);
+  const tickets = await getTickets(usuario.idUsu);
 
-        const dadosChamado = {
-          CatalogoServicosid: 2089, // Definindo o ID do catálogo de serviços como 2089
-          Urgencia: 3, // Definindo a urgência como 3 (Alta) diretamente
-          Prioridade: 1, // Definindo a prioridade como 1 (Baixa) diretamente
-          Descricao: descricao,
-          LoginSolicitante: usuario.login,
-        };
+  if (tickets.length === 0) {
+    await client.sendMessage(
+      sender,
+      "Você não tem nenhum chamado aberto/resolvido recentemente."
+    );
+    console.log(`O usuario não tem chamados`);
+  } else {
+    await client.sendMessage(sender, "Aqui estão seus chamados recentes:");
 
-        try {
-          const resposta = await abrirChamado(dadosChamado);
-          await client.sendMessage(sender, "Aguarde... Abrindo o chamado.");
-          console.log("Chamado aberto com sucesso:", resposta);
-          // Envia uma mensagem de confirmação para o remetente
-          await client.sendMessage(
-            sender,
-            "Chamado aberto com sucesso! Número do chamado: " + resposta
-          );
-          afterSendOptionMenu = false;
-          isFirstMessage = true; // Reinicia o loop
-        } catch (error) {
-          console.error("Erro ao abrir chamado:", error.message);
-          // Envia uma mensagem de erro para o remetente
-          await client.sendMessage(
-            sender,
-            "Erro ao abrir chamado. Por favor, tente novamente."
-          );
-          afterSendOptionMenu = false;
-          isFirstMessage = true; // Reinicia o loop
-        }
-      }
-      // Verifica se a mensagem contém o texto "2" (opção para consultar chamado)
-      if (text && text.trim() === "2") {
-        afterSendOptionMenu = true;
-        await client.sendMessage(sender, "Por favor, informe o seu login:");
-        const usuario = await waitingForMessageAndIdUsu(sender);
+    tickets.forEach((ticket) => {
+      const mensagem = `*Chamado: ${ticket.codigo}*\n - Status: ${ticket.status}\n - Responsavel: ${ticket.responsavel}\n - Abertura: ${ticket.dataAbertura}`;
 
-        await client.sendMessage(sender, "Aguarde... Consultando chamados.");
+      client.sendMessage(sender, mensagem);
+      console.log(mensagem);
+    });
+  }
 
-        console.log(`Dados do usuário: ${usuario.login} ${usuario.idUsu}`);
-
-        const tickets = await getTickets(usuario.idUsu); // obtem uma lista com os chamados
-
-        // Envia os detalhes dos chamados para o usuário
-        if (tickets.length === 0) {
-          await client.sendMessage(
-            sender,
-            "Você não tem nenhum chamado aberto/resolvido recentemente."
-          );
-          console.log(`O usuario não tem chamados`);
-        } else {
-          await client.sendMessage(
-            sender,
-            "Aqui estão seus chamados recentes:"
-          );
-
-          tickets.forEach((ticket) => {
-            const mensagem = `*Chamado: ${ticket.codigo}*\n - Status: ${ticket.status}\n - Responsavel: ${ticket.responsavel}\n - Abertura: ${ticket.dataAbertura}`;
-
-            client.sendMessage(sender, mensagem);
-            console.log(mensagem);
-          });
-        }
-
-        console.log("Chamados abertos:");
-        tickets.forEach((ticket) => {
-          console.log(`Código: ${ticket.codigo}, Status: ${ticket.status}`);
-        });
-
-        afterSendOptionMenu = false;
-        isFirstMessage = true; // Reinicia o loop
-      } else if (!text.toLowerCase().includes("menu") && !afterSendOptionMenu) {
-        await client.sendMessage(
-          sender,
-          "Opção inválida, por favor selecione uma opção válida. Escreva *menu*, para obter as opções."
-        );
-        afterSendOptionMenu = false;
-      }
-    }
+  console.log("Chamados abertos:");
+  tickets.forEach((ticket) => {
+    console.log(`Código: ${ticket.codigo}, Status: ${ticket.status}`);
   });
+
+  afterSendOptionMenu = false;
+  isFirstMessage = true;
+}
+
+// Função para manipular a opção de mensagem inválida
+async function handleInvalidOption(sender) {
+  if (!isMessageFromBot(sender) && !afterSendOptionMenu) {
+    // Verifica se a mensagem não veio do próprio bot e não está após o envio de uma opção de menu
+    await client.sendMessage(
+      sender,
+      "Opção inválida, por favor selecione uma opção válida. Escreva *menu*, para obter as opções."
+    );
+  }
+}
+
+// Inicialização do Cliente e Configuração de Eventos
+client.on("ready", async () => {
+  console.log("WhatsApp client está pronto");
 });
 
+client.on("message", async (message) => {
+  if (!isMessageFromBot(message)) {
+    const sender = message.from;
+    const text = message.body;
+
+    if (isFirstMessage) {
+      isFirstMessage = false;
+      await sendDefaultMessage(sender);
+      return;
+    }
+
+    if (text.toLowerCase().includes("menu")) {
+      await sendDefaultMessage(sender);
+    } else if (text && text.trim() === "1") {
+      await handleAbrirChamado(sender);
+    } else if (text && text.trim() === "2") {
+      await handleConsultarChamados(sender);
+    } else {
+      await handleInvalidOption(sender);
+    }
+  }
+});
+
+// Inicialização do Cliente
 client.initialize();
