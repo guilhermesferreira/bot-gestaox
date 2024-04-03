@@ -146,7 +146,7 @@ async function handleConsultarChamados(sender) {
     session.isFirstMessage = true;
   } catch (error) {
     console.error("Erro ao obter o IdUsuário:", error.message);
-    await client.sendMessage(sender, "Erro ao obter o IdUsuário. Por favor, tente novamente.");
+    await client.sendMessage(sender, "Erro ao validar o usuário. Por favor, tente novamente.");
     session.afterSendOptionMenu = false;
     session.isFirstMessage = false; // Keep the user in the same state
   }
