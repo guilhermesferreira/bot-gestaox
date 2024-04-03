@@ -50,6 +50,13 @@ async function getTickets(IdUsu) {
       dataAbertura: ticket.DATA_ABERTURA,
     }));
 
+    // Ordenar os chamados do mais recente para o mais antigo (formato: DD/MM/AAAA hh:mm:ss)
+    tickets.sort((a, b) => {
+      const dateA = new Date(a.dataAbertura.replace(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1T$4:$5:$6'));
+      const dateB = new Date(b.dataAbertura.replace(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})/, '$3-$2-$1T$4:$5:$6'));
+      return dateB - dateA;
+    });
+
     return tickets;
   } catch (error) {
     throw new Error(`Erro ao consultar os chamados: ${error.message}`);
