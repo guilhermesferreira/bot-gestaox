@@ -114,7 +114,7 @@ async function handleConsultarChamados(sender) {
   try {
     const idUsuario = await getIdUsu(login);
 
-    await client.sendMessage(sender, "Aguarde... Consultando chamados.");
+    //await client.sendMessage(sender, "Aguarde... Consultando chamados.");
 
     console.log(`Dados do usuário: ${login} ${idUsuario}`);
 
@@ -148,7 +148,7 @@ async function handleConsultarChamados(sender) {
     console.error("Erro ao obter o IdUsuário:", error.message);
     await client.sendMessage(sender, "Erro ao validar o usuário. Por favor, tente novamente.");
     session.afterSendOptionMenu = false;
-    session.isFirstMessage = false; // Keep the user in the same state
+    session.isFirstMessage = true; // Keep the user in the same state
   }
 }
 
