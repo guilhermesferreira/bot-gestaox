@@ -55,7 +55,7 @@ async function handleAbrirChamado(sender, choice_dept) {
   await client.sendMessage(sender, "Por favor, descreva o chamado:");
   const descricao = await waitingForMessage(sender);
 
-   const dadosChamado = {
+  const dadosChamado = {
     CatalogoServicosid: await getIdDept(choice_dept),
     Urgencia: 3,
     Prioridade: 1,
@@ -65,14 +65,20 @@ async function handleAbrirChamado(sender, choice_dept) {
 
   try {
     const resposta = await abrirChamado(dadosChamado);
-    await client.sendMessage(sender,"Chamado aberto com sucesso! Número do chamado: " + resposta);
+    await client.sendMessage(
+      sender,
+      "Chamado aberto com sucesso! Número do chamado: " + resposta
+    );
     session.afterSendOptionMenu = false;
     session.isFirstMessage = true;
     console.log("Reinicializando sessão");
     return;
   } catch (error) {
     console.error("Erro ao abrir chamado:", error.message);
-    await client.sendMessage(sender,"Erro ao abrir chamado. Por favor, tente novamente.");
+    await client.sendMessage(
+      sender,
+      "Erro ao abrir chamado. Por favor, tente novamente."
+    );
     session.afterSendOptionMenu = false;
     session.isFirstMessage = true;
   }
@@ -83,7 +89,7 @@ function getIdDept(choice_dept) {
     const id = 2056; // ID Solicitação de Serviço
     return id;
   } else if (choice_dept === "sist") {
-    const id = 1982;// ID Dúvida na utilização
+    const id = 1982; // ID Dúvida na utilização
     return id;
   }
 }
@@ -98,28 +104,37 @@ async function handleConsultarChamados(sender) {
     const idUsuario = await getIdUsu(login);
     const tickets = await getTickets(idUsuario);
     if (tickets.length === 0) {
-      await client.sendMessage(sender,"Você não tem nenhum chamado aberto/resolvido recentemente.");
+      await client.sendMessage(
+        sender,
+        "Você não tem nenhum chamado aberto/resolvido recentemente."
+      );
     } else {
       await client.sendMessage(sender, "Aqui estão seus chamados recentes:");
-        tickets.forEach((ticket) => {
-          const mensagem = `*Chamado: ${ticket.codigo}*\n - Status: ${ticket.status}\n - Responsável: ${ticket.responsavel}\n - Abertura: ${ticket.dataAbertura}`;
-          client.sendMessage(sender, mensagem);
+      tickets.forEach((ticket) => {
+        const mensagem = `*Chamado: ${ticket.codigo}*\n - Status: ${ticket.status}\n - Responsável: ${ticket.responsavel}\n - Abertura: ${ticket.dataAbertura}`;
+        client.sendMessage(sender, mensagem);
       });
     }
 
     session.afterSendOptionMenu = false;
     session.isFirstMessage = true;
   } catch (error) {
-    await client.sendMessage(sender,"Erro ao validar o usuário. Por favor, tente novamente.");
+    await client.sendMessage(
+      sender,
+      "Erro ao validar o usuário. Por favor, tente novamente."
+    );
     session.afterSendOptionMenu = false;
-    session.isFirstMessage = true; 
+    session.isFirstMessage = true;
   }
 }
 
 async function handleInvalidOption(sender) {
   const session = getSession(sender);
   if (!isMessageFromBot(sender) && !session.afterSendOptionMenu) {
-    await client.sendMessage(sender,"Opção inválida, por favor selecione uma opção válida. Escreva *menu*, para obter as opções.");
+    await client.sendMessage(
+      sender,
+      "Opção inválida, por favor selecione uma opção válida. Escreva *menu*, para obter as opções."
+    );
   }
 }
 
@@ -137,7 +152,6 @@ async function waitingForMessage(sender) {
   });
 }
 
-
 const sendDefaultMessage = async (sender) => {
   await client.sendMessage(
     sender,
@@ -150,16 +164,16 @@ client.on("message", async (message) => {
     const sender = message.from;
     const text = message.body;
     const session = getSession(sender);
-  if (session.isFirstMessage) {
+    if (session.isFirstMessage) {
       session.isFirstMessage = false;
       await sendDefaultMessage(sender);
       return;
-    } 
-  if (text.toLowerCase().includes("menu")) {
+    }
+    if (text.toLowerCase().includes("menu")) {
       await sendDefaultMessage(sender);
       return;
     }
-  if (text && text.trim() === "1") {
+    if (text && text.trim() === "1") {
       const choice_dept = "infra";
       await handleAbrirChamado(sender, choice_dept);
     } else if (text && text.trim() === "2") {
