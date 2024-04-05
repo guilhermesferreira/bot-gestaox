@@ -46,15 +46,36 @@ function getSession(sender) {
   return session;
 }
 
+const resetSession = (sender) => {
+  const session = getSession(sender);
+  session.isFirstMessage = true;
+  session.afterSendOptionMenu = false; // Reinicie também a flag de afterSendOptionMenu
+};
+
+const endSession = async (sender) => {
+  await sendExitMessage(sender);
+  resetSession(sender);
+};
+
 async function handleAbrirChamado(sender, choice_dept) {
   const session = getSession(sender);
   session.afterSendOptionMenu = true;
 
   await client.sendMessage(sender, "Por favor, informe o seu login:");
   const login = await waitingForMessage(sender);
+
+  if (login.toLowerCase().includes("sair")) {
+    await resetSession(sender);
+    return;
+  }
+
   await client.sendMessage(sender, "Por favor, descreva o chamado:");
   const descricao = await waitingForMessage(sender);
 
+  if (login.toLowerCase().includes("sair")) {
+    await resetSession(sender);
+    return;
+  }
   const dadosChamado = {
     CatalogoServicosid: await getIdDept(choice_dept),
     Urgencia: 3,
@@ -100,6 +121,10 @@ async function handleConsultarChamados(sender) {
   await client.sendMessage(sender, "Por favor, informe o seu login:");
   const login = await waitingForMessage(sender);
 
+  if (login.toLowerCase().includes("sair")) {
+    await resetSession(sender);
+    return;
+  }
   try {
     const idUsuario = await getIdUsu(login);
     const tickets = await getTickets(idUsuario);
@@ -144,35 +169,49 @@ function isMessageFromBot(message) {
 
 async function waitingForMessage(sender) {
   return new Promise((resolve) => {
-    client.on("message", async (message) => {
+    const messageListener = async (message) => {
       if (message.from === sender) {
-        resolve(message.body.trim());
-      }
-    });
+        const body = message.body.trim().toLowerCase();
+        if (body === "sair") {
+          client.off("message", messageListener); 
+          resolve(body);
+        } else {
+          resolve(message.body.trim());
+        }
+      }};
+    client.on("message", messageListener);
   });
 }
 
 const sendDefaultMessage = async (sender) => {
   await client.sendMessage(
     sender,
-    "Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado - TI Infraestrutura`\n`2 - Abrir chamado - TI Sistemas`\n`3 - Consultar meus chamados`"
+    "Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado - TI Infraestrutura`\n`2 - Abrir chamado - TI Sistemas`\n`3 - Consultar meus chamados`\n\nDigite *sair* a qualquer momento para finalizar a conversa"
   );
+};
+
+const sendExitMessage = async (sender) => {
+  await client.sendMessage(sender, "Atendimento finalizado, Obrigado.");
 };
 
 client.on("message", async (message) => {
   if (!isMessageFromBot(message)) {
+  
     const sender = message.from;
     const text = message.body;
     const session = getSession(sender);
+
+    if (text.toLowerCase().includes("sair")) {
+      await endSession(sender);
+      return;}
     if (session.isFirstMessage) {
       session.isFirstMessage = false;
       await sendDefaultMessage(sender);
-      return;
-    }
+      return;}
     if (text.toLowerCase().includes("menu")) {
       await sendDefaultMessage(sender);
-      return;
-    }
+      return;}
+
     if (text && text.trim() === "1") {
       const choice_dept = "infra";
       await handleAbrirChamado(sender, choice_dept);
