@@ -31,7 +31,6 @@ client.on("ready", async () => {
   console.log("WhatsApp client está pronto");
 });
 
-//Armazenar as sessões em um obj
 const sessions = new Map();
 
 function getSession(sender) {
@@ -49,13 +48,65 @@ function getSession(sender) {
 const resetSession = (sender) => {
   const session = getSession(sender);
   session.isFirstMessage = true;
-  session.afterSendOptionMenu = false; // Reinicie também a flag de afterSendOptionMenu
+  session.afterSendOptionMenu = false; 
 };
 
 const endSession = async (sender) => {
   await sendExitMessage(sender);
   resetSession(sender);
 };
+
+function getIdDept(choice_dept) {
+  if (choice_dept === "infra") {
+    const id = 2056; // ID Solicitação de Serviço
+    return id;
+  } else if (choice_dept === "sist") {
+    const id = 1982; // ID Dúvida na utilização
+    return id;
+  }
+}
+
+async function handleInvalidOption(sender) {
+  const session = getSession(sender);
+  if (!isMessageFromBot(sender) && !session.afterSendOptionMenu) {
+    await client.sendMessage(
+      sender,
+      "Opção inválida, por favor selecione uma opção válida. Escreva *menu*, para obter as opções."
+    );
+  }
+}
+
+const sendDefaultMessage = async (sender) => {
+  await client.sendMessage(
+    sender,
+    "Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado - TI Infraestrutura`\n`2 - Abrir chamado - TI Sistemas`\n`3 - Consultar meus chamados`\n\nDigite *sair* a qualquer momento para finalizar a conversa"
+  );
+};
+
+function isMessageFromBot(message) {
+  return message.from === client.info.wid;
+}
+
+const sendExitMessage = async (sender) => {
+  await client.sendMessage(sender, "Atendimento finalizado, Obrigado.");
+};
+
+async function waitingForMessage(sender) {
+  return new Promise((resolve) => {
+    const messageListener = async (message) => {
+      if (message.from === sender) {
+        const body = message.body.trim().toLowerCase();
+        if (body === "sair") {
+          client.off("message", messageListener);
+          resolve(body);
+        } else {
+          resolve(message.body.trim());
+        }
+      }
+    };
+    client.on("message", messageListener);
+  });
+}
 
 async function handleAbrirChamado(sender, choice_dept) {
   const session = getSession(sender);
@@ -105,16 +156,6 @@ async function handleAbrirChamado(sender, choice_dept) {
   }
 }
 
-function getIdDept(choice_dept) {
-  if (choice_dept === "infra") {
-    const id = 2056; // ID Solicitação de Serviço
-    return id;
-  } else if (choice_dept === "sist") {
-    const id = 1982; // ID Dúvida na utilização
-    return id;
-  }
-}
-
 async function handleConsultarChamados(sender) {
   const session = getSession(sender);
   session.afterSendOptionMenu = true;
@@ -153,64 +194,25 @@ async function handleConsultarChamados(sender) {
   }
 }
 
-async function handleInvalidOption(sender) {
-  const session = getSession(sender);
-  if (!isMessageFromBot(sender) && !session.afterSendOptionMenu) {
-    await client.sendMessage(
-      sender,
-      "Opção inválida, por favor selecione uma opção válida. Escreva *menu*, para obter as opções."
-    );
-  }
-}
-
-function isMessageFromBot(message) {
-  return message.from === client.info.wid;
-}
-
-async function waitingForMessage(sender) {
-  return new Promise((resolve) => {
-    const messageListener = async (message) => {
-      if (message.from === sender) {
-        const body = message.body.trim().toLowerCase();
-        if (body === "sair") {
-          client.off("message", messageListener); 
-          resolve(body);
-        } else {
-          resolve(message.body.trim());
-        }
-      }};
-    client.on("message", messageListener);
-  });
-}
-
-const sendDefaultMessage = async (sender) => {
-  await client.sendMessage(
-    sender,
-    "Olá! Escolha uma das opções a seguir:\n`1 - Abrir chamado - TI Infraestrutura`\n`2 - Abrir chamado - TI Sistemas`\n`3 - Consultar meus chamados`\n\nDigite *sair* a qualquer momento para finalizar a conversa"
-  );
-};
-
-const sendExitMessage = async (sender) => {
-  await client.sendMessage(sender, "Atendimento finalizado, Obrigado.");
-};
-
 client.on("message", async (message) => {
   if (!isMessageFromBot(message)) {
-  
     const sender = message.from;
     const text = message.body;
     const session = getSession(sender);
 
     if (text.toLowerCase().includes("sair")) {
       await endSession(sender);
-      return;}
+      return;
+    }
     if (session.isFirstMessage) {
       session.isFirstMessage = false;
       await sendDefaultMessage(sender);
-      return;}
+      return;
+    }
     if (text.toLowerCase().includes("menu")) {
       await sendDefaultMessage(sender);
-      return;}
+      return;
+    }
 
     if (text && text.trim() === "1") {
       const choice_dept = "infra";
