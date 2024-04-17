@@ -48,12 +48,7 @@ function getSession(sender) {
 const resetSession = (sender) => {
   const session = getSession(sender);
   session.isFirstMessage = true;
-  session.afterSendOptionMenu = false; 
-};
-
-const endSession = async (sender) => {
-  await sendExitMessage(sender);
-  resetSession(sender);
+  session.afterSendOptionMenu = false;
 };
 
 function getIdDept(choice_dept) {
@@ -78,19 +73,14 @@ async function handleInvalidOption(sender) {
 
 const sendDefaultMessage = async (sender) => {
   await client.sendMessage(
-  sender,
-  "Olá! Bem-Vindo sistema de abertura e consulta de chamados. Escolha uma das opções a seguir: \n\n`1 - Abrir chamado - TI Infraestrutura`\n`2 - Abrir chamado - TI Sistemas`\n`3 - Consultar meus chamados`\n\nDigite *sair* a qualquer momento para finalizar a conversa"
-);
+    sender,
+    "Olá! Bem-Vindo sistema de abertura e consulta de chamados. Escolha uma das opções a seguir: \n\n`1 - Abrir chamado - TI Infraestrutura`\n`2 - Abrir chamado - TI Sistemas`\n`3 - Consultar meus chamados`\n\nDigite *sair* a qualquer momento para finalizar a conversa"
+  );
 };
-
 
 function isMessageFromBot(message) {
   return message.from === client.info.wid;
 }
-
-const sendExitMessage = async (sender) => {
-  await client.sendMessage(sender, "Atendimento finalizado, Obrigado.");
-};
 
 async function waitingForMessage(sender) {
   return new Promise((resolve) => {
@@ -116,16 +106,14 @@ async function handleAbrirChamado(sender, choice_dept) {
   await client.sendMessage(sender, "Por favor, informe o seu login:");
   const login = await waitingForMessage(sender);
 
-  if (login.toLowerCase() === "sair" ) {
-    await resetSession(sender);
+  if (login.toLowerCase() === "sair") {
     return;
   }
 
   await client.sendMessage(sender, "Por favor, descreva o chamado:");
   const descricao = await waitingForMessage(sender);
 
-  if (descricao.toLowerCase() === "sair" ) {
-    await resetSession(sender);
+  if (descricao.toLowerCase() === "sair") {
     return;
   }
 
@@ -163,11 +151,10 @@ async function handleConsultarChamados(sender) {
   session.afterSendOptionMenu = true;
   await client.sendMessage(sender, "Por favor, informe o seu login:");
   const login = await waitingForMessage(sender);
-
-  if (descricao.toLowerCase() === "sair" ) {
-    await resetSession(sender);
+  if (login.toLowerCase() === "sair") {
     return;
   }
+
   try {
     const idUsuario = await getIdUsu(login);
     const tickets = await getTickets(idUsuario);
@@ -201,10 +188,10 @@ client.on("message", async (message) => {
     const sender = message.from;
     const text = message.body;
     const session = getSession(sender);
-    console.log("Entrada do usuario: ",sender," ", text);
-
+   
     if (text.toLowerCase() === "sair") {
-      await endSession(sender);
+      await client.sendMessage(sender, "Atendimento finalizado, Obrigado.");
+      await resetSession(sender);
       return;
     }
     if (session.isFirstMessage) {
