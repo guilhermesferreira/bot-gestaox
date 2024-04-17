@@ -48,6 +48,7 @@ async function getTickets(IdUsu) {
       status: ticket.STATUS,
       responsavel: ticket.RESPONSAVEL_USER,
       dataAbertura: ticket.DATA_ABERTURA,
+      descricao: ticket.DESCRICAO
     }));
 
     // Ordenar os chamados do mais recente para o mais antigo (formato: DD/MM/AAAA hh:mm:ss)
