@@ -102,12 +102,21 @@ async function waitingForMessage(sender) {
 async function handleAbrirChamado(sender, choice_dept) {
   const session = getSession(sender);
   session.afterSendOptionMenu = true;
+  let idUser = "0";
 
-  await client.sendMessage(sender, "Por favor, informe o seu login:");
-  const login = await waitingForMessage(sender);
+  while (idUser == "0") {
+    await client.sendMessage(sender, "Por favor, informe o seu login:");
+    const login = await waitingForMessage(sender);
 
-  if (login.toLowerCase() === "sair") {
-    return;
+    if (login.toLowerCase() === "sair") {
+      return;
+    }
+
+    idUser = await getIdUsu(login);
+
+    if (idUser == "0") {
+      await client.sendMessage(sender, "Usuário não encontrado. Tente novamente ou digite *sair*");
+    }
   }
 
   await client.sendMessage(sender, "Por favor, descreva o chamado:");
